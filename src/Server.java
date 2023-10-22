@@ -60,7 +60,8 @@ public class Server {
                             System.out.println("Got a command: "+command);
                         switch (command) {
                             case "glClear":
-                                mask = (int) argsObject;
+                                Object[] args33 = (Object[]) argsObject;
+                                mask = (int) args33[0];
                                 GL20.glClear(mask);
                                 break;
 
@@ -245,6 +246,14 @@ public class Server {
                                 GL11.glTexParameteri(target, pname, param);
                                 break;
 
+                            case "glfwPollEvents":
+                                GLFW.glfwPollEvents();
+                                break;
+
+                            case "glfwSwapBuffers":
+                                GLFW.glfwSwapBuffers(window);
+                                break;
+
                             case "glTexImage2D":
                                 Object[] texImage2DArgs = (Object[]) argsObject;
 
@@ -343,9 +352,6 @@ public class Server {
                         if(GL20.glGetError() != 0){
                             System.out.println("Error");
                         }
-                        GLFW.glfwPollEvents();
-                        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-                        GLFW.glfwSwapBuffers(window);
                     }
                 } catch (IOException | ClassNotFoundException e) {
                     System.out.println("Connection closed or error: " + e.getMessage());

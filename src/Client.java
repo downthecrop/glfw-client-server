@@ -1,3 +1,5 @@
+import org.lwjgl.opengl.GL11;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -242,6 +244,16 @@ public class Client {
         sendCommand("glActiveTexture", args);
     }
 
+    public static void glfwSwapBuffers(long window){
+        Object[] args = new Object[]{window};
+        sendCommand("glfwSwapBuffers", args);
+    }
+
+    public static void glfwPollEvents(){
+        Object[] args = new Object[]{};
+        sendCommand("glfwPollEvents", args);
+    }
+
     public static void glDrawElementsWrapper(int mode, int count, int type, ByteBuffer buffer) {
         byte[] byteArray = new byte[buffer.remaining()];
         buffer.get(byteArray);
@@ -270,13 +282,23 @@ public class Client {
 
     public static void main(String[] args) throws InterruptedException {
         try {
+            long l = 100;
             while (true) {
                 glClearColor(1, 0, 0, 1);
+                glfwPollEvents();
+                glClear(GL11.GL_COLOR_BUFFER_BIT);
+                glfwSwapBuffers(l);
                 glLineWidth(1000f);
                 Thread.sleep(1000);
                 glClearColor(0, 0, 1, 1);
+                glfwPollEvents();
+                glClear(GL11.GL_COLOR_BUFFER_BIT);
+                glfwSwapBuffers(l);
                 Thread.sleep(1000);
                 glClearColor(0, 1, 0, 1);
+                glfwPollEvents();
+                glClear(GL11.GL_COLOR_BUFFER_BIT);
+                glfwSwapBuffers(l);
                 Thread.sleep(1000);
             }
         } finally {
