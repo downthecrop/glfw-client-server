@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
@@ -30,6 +31,8 @@ public class Server {
         int mode;
         int mask;
         int format;
+        Object[] bindTextureArgs;
+        Object[] oArgs;
         int param;
         try (ServerSocket serverSocket = new ServerSocket(8080)) {
 
@@ -60,8 +63,9 @@ public class Server {
                             System.out.println("Got a command: "+command);
                         switch (command) {
                             case "glClear":
-                                Object[] args33 = (Object[]) argsObject;
-                                mask = (int) args33[0];
+                                oArgs = (Object[]) argsObject;
+                                mask = (int) oArgs[0];
+                                //System.out.println(mask);
                                 GL20.glClear(mask);
                                 break;
 
@@ -77,8 +81,14 @@ public class Server {
                                 GL20.glEnable(cap);
                                 break;
 
+                            case "glGenTexturesNoArgs":
+                                out.writeObject(GL11.glGenTextures());
+                                out.flush();
+                                break;
+
                             case "glDisable":
                                 int capDisable = (int) argsObject;
+                                //System.out.println(capDisable);
                                 GL20.glDisable(capDisable);
                                 break;
 
@@ -88,8 +98,8 @@ public class Server {
                                 break;
 
                             case "glDepthMask":
-                                boolean flag = (boolean) argsObject;
-                                GL11.glDepthMask(flag);
+                                oArgs = (Object[]) argsObject;
+                                GL11.glDepthMask((boolean)oArgs[0]);
                                 break;
 
                             case "glLoadIdentity":
@@ -104,7 +114,8 @@ public class Server {
                                 break;
 
                             case "glCullFace":
-                                mode = (int) argsObject;
+                                oArgs =  (Object[]) argsObject;
+                                mode = (int) oArgs[0];
                                 GL11.glCullFace(mode);
                                 break;
 
@@ -140,12 +151,12 @@ public class Server {
                                 break;
 
                             case "glActiveTexture":
-                                texture = (int) argsObject;
-                                GL20.glActiveTexture(texture);
+                                bindTextureArgs = (Object[]) argsObject;
+                                GL20.glActiveTexture((int)bindTextureArgs[0]);
                                 break;
 
                             case "glBindTexture":
-                                Object[] bindTextureArgs = (Object[]) argsObject;
+                                bindTextureArgs = (Object[]) argsObject;
                                 target = (int) bindTextureArgs[0];
                                 texture = (int) bindTextureArgs[1];
                                 GL11.glBindTexture(target, texture);
@@ -162,6 +173,44 @@ public class Server {
                             case "glReadBuffer":
                                 mode = (int) argsObject;
                                 GL11.glReadBuffer(mode);
+                                break;
+
+                            case "glGenLists":
+                                int range1 = (int) ((Object[]) args)[0];
+                                int listID = GL11.glGenLists(range1);
+                                out.writeObject(listID);
+                                break;
+
+                            case "glNewList":
+                                int list = (int) ((Object[]) args)[0];
+                                mode = (int) ((Object[]) args)[1];
+                                GL11.glNewList(list, mode);
+                                break;
+
+                            case "glTexCoord2f":
+                                float s = (float) ((Object[]) args)[0];
+                                float t = (float) ((Object[]) args)[1];
+                                GL11.glTexCoord2f(s, t);
+                                break;
+
+                            case "glVertex2f":
+                                float x1 = (float) ((Object[]) args)[0];
+                                float y1 = (float) ((Object[]) args)[1];
+                                GL11.glVertex2f(x1, y1);
+                                break;
+
+                            case "glEnd":
+                                GL11.glEnd();
+                                break;
+
+                            case "glEndList":
+                                GL11.glEndList();
+                                break;
+
+
+                            case "glBegin":
+                                mode = (int) ((Object[]) args)[0];
+                                GL11.glBegin(mode);
                                 break;
 
                             case "glPushAttrib":
@@ -267,9 +316,14 @@ public class Server {
                                 type = (int) texImage2DArgs[7];
                                 byte[] pixelBytes = (byte[]) texImage2DArgs[8];
 
-                                ByteBuffer pixels1 = ByteBuffer.wrap(pixelBytes);
+                                ByteBuffer byteBuffer = ByteBuffer.wrap(pixelBytes);
+                                IntBuffer pixels1 = byteBuffer.asIntBuffer();
 
-                                GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels1);
+                                //GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels1);
+                                int errorCode = GL11.glGetError();
+                                if (errorCode != GL11.GL_NO_ERROR) {
+                                    System.out.println("OpenGL Error: " + errorCode);
+                                }
                                 break;
 
                             case "glDrawElementsWrapper":
@@ -288,7 +342,8 @@ public class Server {
                                 break;
 
                             case "glClearDepth":
-                                GL11.glClearDepth((double) argsObject);
+                                oArgs = (Object[]) argsObject;
+                                GL11.glClearDepth((double) oArgs[0]);
                                 break;
 
                             case "glLoadMatrixf":
@@ -328,7 +383,8 @@ public class Server {
                                 break;
 
                             case "glDepthFunc":
-                                GL11.glDepthFunc((int) argsObject);
+                                oArgs = (Object[]) argsObject;
+                                GL11.glDepthFunc((int) oArgs[0]);
                                 break;
 
                             case "glClearColor":
@@ -341,8 +397,8 @@ public class Server {
                                 break;
 
                             case "glShadeModel":
-                                mode = (int) argsObject;
-                                GL11.glShadeModel(mode);
+                                oArgs = (Object[]) argsObject;
+                                GL11.glShadeModel((int)oArgs[0]);
                                 break;
 
                             default:

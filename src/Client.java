@@ -7,16 +7,20 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 public class Client {
 
     private static Socket socket;
     private static ObjectOutputStream out;
 
+    private static ObjectInputStream in;
+
     static {
         try {
             socket = new Socket("localhost", 8080);
             out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -155,6 +159,32 @@ public class Client {
         return textureIDs;
     }
 
+    public static void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, IntBuffer pixels) {
+        try {
+            byte[] pixelBytes = new byte[pixels.remaining() * 4];
+            ByteBuffer byteBuffer = ByteBuffer.wrap(pixelBytes);
+            byteBuffer.asIntBuffer().put(pixels);
+
+            Object[] args = new Object[]{target, level, internalformat, width, height, border, format, type, pixelBytes};
+            sendCommand("glTexImage2D", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static int glGenTextures() {
+        Integer textureID = null;
+        Object[] args = new Object[]{};
+        try {
+            textureID = (Integer) sendCommandWithReturn("glGenTexturesNoArgs", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return textureID != null ? textureID : -1; // Return -1 if null, indicating an error
+    }
+
+
 
 
     public static void glPushAttrib(int mask) {
@@ -223,16 +253,58 @@ public class Client {
         }
     }
 
+    public static int glGenLists(int range) {
+        int listID = -1;
+        Object[] args = new Object[]{range};
+        try {
+            listID = (int) sendCommandWithReturn("glGenLists", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return listID;
+    }
+
+    public static void glNewList(int list, int mode) {
+        Object[] args = new Object[]{list, mode};
+        sendCommand("glNewList", args);
+    }
+
+    public static void glBegin(int mode) {
+        Object[] args = new Object[]{mode};
+        sendCommand("glBegin", args);
+    }
+
+    public static void glTexCoord2f(float s, float t) {
+        Object[] args = new Object[]{s, t};
+        sendCommand("glTexCoord2f", args);
+    }
+
+    public static void glEndList() {
+        sendCommand("glEndList", null);
+    }
+
+    public static void glEnd() {
+        sendCommand("glEnd", null);
+    }
+    public static void glVertex2f(float x, float y) {
+        Object[] args = new Object[]{x, y};
+        sendCommand("glVertex2f", args);
+    }
+
     private static Object sendCommandWithReturn(String command, Object args) {
-        try (Socket socket = new Socket("localhost", 8080)) {
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        try {
+            synchronized (out) {
+                out.writeUTF(command);
+                out.writeObject(args);
+                out.flush();
+            }
 
-            out.writeUTF(command);
-            out.writeObject(args);
-            out.flush();
+            Object returnValue;
+            synchronized (in) {
+                returnValue = in.readObject();
+            }
 
-            return in.readObject();
+            return returnValue;
         } catch (Exception e) {
             e.printStackTrace();
         }
