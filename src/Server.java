@@ -477,6 +477,81 @@ public class Server {
                                 GL11.glViewport(x, y, width, height);
                                 break;
 
+                            case "glGetFloatv":
+                                pname = (int) ((Object[]) argsObject)[0];
+                                FloatBuffer floatBuffer = BufferUtils.createFloatBuffer(16); // You may need to adjust the buffer size
+                                GL11.glGetFloatv(pname, floatBuffer);
+
+                                float[] floats = new float[floatBuffer.capacity()];
+                                floatBuffer.get(floats);
+                                out.writeObject(floats);
+                                out.flush();
+                                break;
+
+                            case "glPointParameterf":
+                                Object[] pointParameterfArgs = (Object[]) argsObject;
+                                pname = (int) pointParameterfArgs[0];
+                                float param11 = (float) pointParameterfArgs[1];
+                                GL14.glPointParameterf(pname, param11);
+                                break;
+
+                            case "glTexStorage2D":
+                                Object[] texStorage2DArgs = (Object[]) argsObject;
+                                target = (int) texStorage2DArgs[0];
+                                int levels = (int) texStorage2DArgs[1];
+                                internalformat = (int) texStorage2DArgs[2];
+                                width = (int) texStorage2DArgs[3];
+                                height = (int) texStorage2DArgs[4];
+                                GL42.glTexStorage2D(target, levels, internalformat, width, height);
+                                break;
+
+                            case "glTexSubImage2D":
+                                Object[] texSubImage2DArgs = (Object[]) argsObject;
+
+                                target = (int) texSubImage2DArgs[0];
+                                level = (int) texSubImage2DArgs[1];
+                                int xoffset = (int) texSubImage2DArgs[2];
+                                int yoffset = (int) texSubImage2DArgs[3];
+                                width = (int) texSubImage2DArgs[4];
+                                height = (int) texSubImage2DArgs[5];
+                                format = (int) texSubImage2DArgs[6];
+                                type = (int) texSubImage2DArgs[7];
+                                byte[] pixelBytes = (byte[]) texSubImage2DArgs[8];
+
+                                ByteBuffer pixels33 = ByteBuffer.wrap(pixelBytes);
+
+                                GL11.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels33);
+                                break;
+
+                            case "glGenerateMipmap":
+                                Object[] genMipmapArgs = (Object[]) argsObject;
+                                target = (int) genMipmapArgs[0];
+                                GL30.glGenerateMipmap(target);
+                                break;
+
+
+                            case "glBindBuffer":
+                                Object[] bindBufferArgs = (Object[]) argsObject;
+                                target = (int) bindBufferArgs[0];
+                                int buffer1 = (int) bindBufferArgs[1];
+                                GL15.glBindBuffer(target, buffer1);
+                                break;
+
+
+
+
+
+
+                            case "glPointParameterfv":
+                                Object[] pointParamArgs = (Object[]) argsObject;
+                                pname = (int) pointParamArgs[0];
+                                float[] params = (float[]) pointParamArgs[1];
+                                FloatBuffer paramsBuffer = BufferUtils.createFloatBuffer(params.length).put(params);
+                                paramsBuffer.flip();
+                                GL14.glPointParameterfv(pname, paramsBuffer);
+                                break;
+
+
                             case "glDepthFunc":
                                 oArgs = (Object[]) argsObject;
                                 GL11.glDepthFunc((int) oArgs[0]);
@@ -502,7 +577,7 @@ public class Server {
 
                         int error = GL20.glGetError();
                         if(error != 0){
-                            System.out.println("Error " + error);
+                            //System.out.println("Error " + error);
                         }
                     }
                 } catch (IOException | ClassNotFoundException e) {

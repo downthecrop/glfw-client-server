@@ -43,6 +43,94 @@ public class Client {
         sendCommand("glDisable", cap);
     }
 
+    public static void glPointParameterfv(int pname, float[] params) {
+        Object[] args = new Object[]{pname, params};
+        try {
+            sendCommand("glPointParameterfv", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static float[] glGetFloatv(int pname) {
+        float[] result = null;
+        Object[] args = new Object[]{pname};
+        try {
+            result = (float[]) sendCommandWithReturn("glGetFloatv", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
+    public static void glGetFloatv(int pname, FloatBuffer buffer) {
+        Object[] args = new Object[]{pname};
+        try {
+            float[] result = (float[]) sendCommandWithReturn("glGetFloatv", args);
+            buffer.put(result);
+            buffer.flip(); // Don't forget to flip the buffer to be able to read it
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void glPointParameterf(int pname, float param) {
+        Object[] args = new Object[]{pname, param};
+        try {
+            sendCommand("glPointParameterf", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void glTexStorage2D(int target, int levels, int internalformat, int width, int height) {
+        Object[] args = new Object[]{target, levels, internalformat, width, height};
+        try {
+            sendCommand("glTexStorage2D", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, ByteBuffer pixels) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+
+            objectOutputStream.writeObject(pixels.array());
+
+            byte[] pixelBytes = byteArrayOutputStream.toByteArray();
+
+            Object[] args = new Object[]{target, level, xoffset, yoffset, width, height, format, type, pixelBytes};
+            sendCommand("glTexSubImage2D", args);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void glBindBuffer(int target, int buffer) {
+        Object[] args = new Object[]{target, buffer};
+        try {
+            sendCommand("glBindBuffer", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void glGenerateMipmap(int target) {
+        Object[] args = new Object[]{target};
+        try {
+            sendCommand("glGenerateMipmap", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public static void glViewport(int x, int y, int width, int height) {
         Object[] args = new Object[]{x, y, width, height};
         sendCommand("glViewport", args);
