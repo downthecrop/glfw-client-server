@@ -7,12 +7,11 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.Arrays;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL12;
-import org.lwjgl.opengl.GL20;
+import org.lwjgl.opengl.*;
 import org.lwjgl.system.MemoryUtil;
 
 public class Server {
@@ -60,7 +59,7 @@ public class Server {
                         String command = in.readUTF();
                         Object argsObject = in.readObject();
                         if(!command.equals(""))
-                            System.out.println("Got a command: "+command);
+                            //System.out.println("Got a command: "+command);
                         switch (command) {
                             case "glClear":
                                 oArgs = (Object[]) argsObject;
@@ -77,8 +76,8 @@ public class Server {
                                 break;
 
                             case "glEnable":
-                                cap = (int) argsObject;
-                                GL20.glEnable(cap);
+                                oArgs = (Object[]) argsObject;
+                                GL20.glEnable((int) oArgs[0]);
                                 break;
 
                             case "glGenTexturesNoArgs":
@@ -87,14 +86,14 @@ public class Server {
                                 break;
 
                             case "glDisable":
-                                int capDisable = (int) argsObject;
+                                oArgs = (Object[]) argsObject;
                                 //System.out.println(capDisable);
-                                GL20.glDisable(capDisable);
+                                GL20.glDisable((int) oArgs[0]);
                                 break;
 
                             case "glMatrixMode":
-                                mode = (int) argsObject;
-                                GL11.glMatrixMode(mode);
+                                oArgs = (Object[]) argsObject;
+                                GL11.glMatrixMode((int) oArgs[0]);
                                 break;
 
                             case "glDepthMask":
@@ -136,6 +135,7 @@ public class Server {
                                 pname = (int)((Object[]) argsObject)[0];
                                 int result = GL11.glGetInteger(pname);
                                 out.writeObject(result);
+                                out.flush();
                                 break;
 
                             case "glAlphaFunc":
@@ -146,8 +146,17 @@ public class Server {
                                 break;
 
                             case "glDrawBuffer":
-                                mode = (int) argsObject;
+                                oArgs = (Object[]) argsObject;
+                                mode = (int) oArgs[0];
                                 GL11.glDrawBuffer(mode);
+                                break;
+
+                            case "glColor3f":
+                                Object[] colorArgs = (Object[]) argsObject;
+                                float red = (float) colorArgs[0];
+                                float green = (float) colorArgs[1];
+                                float blue = (float) colorArgs[2];
+                                GL11.glColor3f(red, green, blue);
                                 break;
 
                             case "glActiveTexture":
@@ -171,31 +180,96 @@ public class Server {
                                 break;
 
                             case "glReadBuffer":
-                                mode = (int) argsObject;
+                                oArgs = (Object[]) argsObject;
+                                mode = (int)oArgs[0];
                                 GL11.glReadBuffer(mode);
                                 break;
 
+                            case "glScissor":
+                                Object[] scissorArgs = (Object[]) argsObject;
+                                x = (int) scissorArgs[0];
+                                y = (int) scissorArgs[1];
+                                width = (int) scissorArgs[2];
+                                height = (int) scissorArgs[3];
+                                GL11.glScissor(x, y, width, height);
+                                break;
+
                             case "glGenLists":
-                                int range1 = (int) ((Object[]) args)[0];
-                                int listID = GL11.glGenLists(range1);
-                                out.writeObject(listID);
+                                Object[] glGenListsArgs = (Object[]) argsObject;
+                                int range = (int) glGenListsArgs[0];
+                                int listID = GL11.glGenLists(range);
+                                out.write(listID);
+                                out.flush();
+                                // Handle listID appropriately here (send back to client, etc.)
+                                break;
+
+                            case "glTexGeni":
+                                Object[] texGeniArgs = (Object[]) argsObject;
+                                int coord = (int) texGeniArgs[0];
+                                int pnameq = (int) texGeniArgs[1];
+                                int paramq = (int) texGeniArgs[2];
+                                GL11.glTexGeni(coord, pnameq, paramq);
+                                break;
+
+
+                            case "glCallList":
+                                Object[] listArgs = (Object[]) argsObject;
+                                int list = (int) listArgs[0];
+                                GL11.glCallList(list);
+                                break;
+
+
+
+                            case "glColor3ub":
+                                Object[] colorArgs3 = (Object[]) argsObject;
+                                byte red3 = (byte) colorArgs3[0];
+                                byte green3 = (byte) colorArgs3[1];
+                                byte blue3 = (byte) colorArgs3[2];
+                                GL11.glColor3ub(red3, green3, blue3);
+                                break;
+
+
+                            case "glGenBuffers":
+                                int bufferID = GL15.glGenBuffers();
+                                out.writeObject(bufferID);
+                                out.flush();
+                                break;
+
+                            case "glGenBuffersInt":
+                                IntBuffer serverBuffer = BufferUtils.createIntBuffer(1);
+                                GL15.glGenBuffers(serverBuffer);
+                                bufferID = serverBuffer.get(0);
+                                out.writeObject(new int[]{bufferID});
+                                out.flush();
                                 break;
 
                             case "glNewList":
-                                int list = (int) ((Object[]) args)[0];
-                                mode = (int) ((Object[]) args)[1];
+                                Object[] glNewListArgs = (Object[]) argsObject;
+                                if (glNewListArgs.length < 2) {
+                                    System.out.println("Missing arguments for glNewList");
+                                    break;
+                                }
+                                list = (int) glNewListArgs[0];
+                                mode = (int) glNewListArgs[1];
                                 GL11.glNewList(list, mode);
+                                int errorCode = GL11.glGetError();
+                                if (errorCode != GL11.GL_NO_ERROR) {
+                                    System.out.println("OpenGL Error: " + errorCode);
+                                }
                                 break;
 
+
                             case "glTexCoord2f":
-                                float s = (float) ((Object[]) args)[0];
-                                float t = (float) ((Object[]) args)[1];
+                                oArgs = (Object[]) argsObject;
+                                float s = (float) oArgs[0];
+                                float t = (float) oArgs[1];
                                 GL11.glTexCoord2f(s, t);
                                 break;
 
                             case "glVertex2f":
-                                float x1 = (float) ((Object[]) args)[0];
-                                float y1 = (float) ((Object[]) args)[1];
+                                oArgs = (Object[]) argsObject;
+                                float x1 = (float) oArgs[0];
+                                float y1 = (float) oArgs[1];
                                 GL11.glVertex2f(x1, y1);
                                 break;
 
@@ -209,19 +283,30 @@ public class Server {
 
 
                             case "glBegin":
-                                mode = (int) ((Object[]) args)[0];
+                                Object[] glBeginArgs = (Object[]) argsObject;
+                                if (glBeginArgs.length < 1) {
+                                    System.out.println("Missing arguments for glBegin");
+                                    break;
+                                }
+                                mode = (int) glBeginArgs[0];
                                 GL11.glBegin(mode);
+                                errorCode = GL11.glGetError();
+                                if (errorCode != GL11.GL_NO_ERROR) {
+                                    System.out.println("OpenGL Error: " + errorCode);
+                                }
                                 break;
 
+
                             case "glPushAttrib":
-                                mask = (int)((Object[]) argsObject)[0];
+                                oArgs = (Object[]) argsObject;
+                                mask = (int)oArgs[0];
                                 GL11.glPushAttrib(mask);
                                 break;
 
                             case "glRasterPos2i":
-                                Object[] rasterPosArgs = (Object[]) argsObject;
-                                x = (int) rasterPosArgs[0];
-                                y = (int) rasterPosArgs[1];
+                                oArgs = (Object[]) argsObject;
+                                x = (int) oArgs[0];
+                                y = (int) oArgs[1];
                                 GL11.glRasterPos2i(x, y);
                                 break;
 
@@ -305,7 +390,6 @@ public class Server {
 
                             case "glTexImage2D":
                                 Object[] texImage2DArgs = (Object[]) argsObject;
-
                                 target = (int) texImage2DArgs[0];
                                 level = (int) texImage2DArgs[1];
                                 int internalformat = (int) texImage2DArgs[2];
@@ -314,13 +398,24 @@ public class Server {
                                 border = (int) texImage2DArgs[5];
                                 format = (int) texImage2DArgs[6];
                                 type = (int) texImage2DArgs[7];
-                                byte[] pixelBytes = (byte[]) texImage2DArgs[8];
+                                Object bufferObject = texImage2DArgs[8];
 
-                                ByteBuffer byteBuffer = ByteBuffer.wrap(pixelBytes);
-                                IntBuffer pixels1 = byteBuffer.asIntBuffer();
+                                if (bufferObject instanceof byte[]) {
+                                    byte[] pixelBytes = (byte[]) bufferObject;
+                                    ByteBuffer byteBuffer = ByteBuffer.wrap(pixelBytes);
+                                    //GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, byteBuffer);
+                                } else if (bufferObject instanceof int[]) {
+                                    int[] pixelInts = (int[]) bufferObject;
+                                    // Debug print the server buffer after receiving
+                                    //System.out.println("Server received byte buffer: " + Arrays.toString(pixelInts));
+                                    IntBuffer intBuffer = IntBuffer.wrap(pixelInts);
+                                    //GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, intBuffer);
+                                } else {
+                                    // Handle an unsupported buffer type
+                                    System.out.println("Unsupported buffer type");
+                                }
 
-                                //GL11.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels1);
-                                int errorCode = GL11.glGetError();
+                                errorCode = GL11.glGetError();
                                 if (errorCode != GL11.GL_NO_ERROR) {
                                     System.out.println("OpenGL Error: " + errorCode);
                                 }
@@ -388,12 +483,12 @@ public class Server {
                                 break;
 
                             case "glClearColor":
-                                Object[] colorArgs = (Object[]) argsObject;
-                                float red = (float) colorArgs[0];
-                                float green = (float) colorArgs[1];
-                                float blue = (float) colorArgs[2];
-                                float alpha = (float) colorArgs[3];
-                                GL20.glClearColor(red, green, blue, alpha);
+                                oArgs = (Object[]) argsObject;
+                                float red1 = (float) oArgs[0];
+                                float green2 = (float) oArgs[1];
+                                float blue34 = (float) oArgs[2];
+                                float alpha4 = (float) oArgs[3];
+                                GL20.glClearColor(red1, green2, blue34, alpha4);
                                 break;
 
                             case "glShadeModel":
@@ -405,8 +500,9 @@ public class Server {
                                 System.out.println("Unrecognized command: " + command);
                         }
 
-                        if(GL20.glGetError() != 0){
-                            System.out.println("Error");
+                        int error = GL20.glGetError();
+                        if(error != 0){
+                            System.out.println("Error " + error);
                         }
                     }
                 } catch (IOException | ClassNotFoundException e) {

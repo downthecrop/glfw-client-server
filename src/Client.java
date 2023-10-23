@@ -1,3 +1,4 @@
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 import java.io.ByteArrayOutputStream;
@@ -8,6 +9,9 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.Random;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 public class Client {
 
@@ -159,19 +163,6 @@ public class Client {
         return textureIDs;
     }
 
-    public static void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, IntBuffer pixels) {
-        try {
-            byte[] pixelBytes = new byte[pixels.remaining() * 4];
-            ByteBuffer byteBuffer = ByteBuffer.wrap(pixelBytes);
-            byteBuffer.asIntBuffer().put(pixels);
-
-            Object[] args = new Object[]{target, level, internalformat, width, height, border, format, type, pixelBytes};
-            sendCommand("glTexImage2D", args);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
 
     public static int glGenTextures() {
         Integer textureID = null;
@@ -239,19 +230,28 @@ public class Client {
 
     public static void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, ByteBuffer pixels) {
         try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-
-            objectOutputStream.writeObject(pixels.array());
-
-            byte[] pixelBytes = byteArrayOutputStream.toByteArray();
+            byte[] pixelBytes = new byte[pixels.remaining()];
+            pixels.get(pixelBytes);
 
             Object[] args = new Object[]{target, level, internalformat, width, height, border, format, type, pixelBytes};
             sendCommand("glTexImage2D", args);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    public static void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, IntBuffer pixels) {
+        try {
+            int[] pixelInts = new int[pixels.remaining()];
+            pixels.get(pixelInts);
+
+            Object[] args = new Object[]{target, level, internalformat, width, height, border, format, type, pixelInts};
+            sendCommand("glTexImage2D", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public static int glGenLists(int range) {
         int listID = -1;
@@ -273,6 +273,16 @@ public class Client {
         Object[] args = new Object[]{mode};
         sendCommand("glBegin", args);
     }
+
+    public static void glColor3f(float red, float green, float blue) {
+        Object[] args = new Object[]{red, green, blue};
+        try {
+            sendCommand("glColor3f", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public static void glTexCoord2f(float s, float t) {
         Object[] args = new Object[]{s, t};
@@ -344,6 +354,49 @@ public class Client {
         }
     }
 
+    public static void glTexGeni(int coord, int pname, int param) {
+        Object[] args = new Object[]{coord, pname, param};
+        try {
+            sendCommand("glTexGeni", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int glGenBuffers() {
+        int bufferID = -1;
+        Object[] args = new Object[]{};
+        try {
+            bufferID = (int) sendCommandWithReturn("glGenBuffers", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bufferID;
+    }
+
+    public static void glGenBuffers(IntBuffer buffer) {
+        Object[] args = new Object[]{};
+        try {
+            int[] result = (int[]) sendCommandWithReturn("glGenBuffersInt", args);
+            if (result != null && result.length > 0) {
+                buffer.put(result[0]);
+                buffer.flip();  // Don't forget to flip the buffer to make it readable.
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void glScissor(int x, int y, int width, int height) {
+        Object[] args = new Object[]{x, y, width, height};
+        try {
+            sendCommand("glScissor", args);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     public static void close() {
         try {
             socket.close();
@@ -355,23 +408,30 @@ public class Client {
     public static void main(String[] args) throws InterruptedException {
         try {
             long l = 100;
+            float x = 0, y = 0;
+            float dx = 0.01f, dy = 0.01f;
+            Random random = new Random();
             while (true) {
-                glClearColor(1, 0, 0, 1);
-                glfwPollEvents();
-                glClear(GL11.GL_COLOR_BUFFER_BIT);
-                glfwSwapBuffers(l);
-                glLineWidth(1000f);
-                Thread.sleep(1000);
-                glClearColor(0, 0, 1, 1);
-                glfwPollEvents();
-                glClear(GL11.GL_COLOR_BUFFER_BIT);
-                glfwSwapBuffers(l);
-                Thread.sleep(1000);
-                glClearColor(0, 1, 0, 1);
-                glfwPollEvents();
-                glClear(GL11.GL_COLOR_BUFFER_BIT);
-                glfwSwapBuffers(l);
-                Thread.sleep(1000);
+                    glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+
+                    if (x >= 1 || x <= -1) dx = -dx;
+                    if (y >= 1 || y <= -1) dy = -dy;
+
+                    x += dx;
+                    y += dy;
+
+                    glColor3f(random.nextFloat(), random.nextFloat(), random.nextFloat());
+                    glBegin(GL11.GL_QUADS);
+
+                    glVertex2f(x - 0.1f, y - 0.1f);
+                    glVertex2f(x + 0.1f, y - 0.1f);
+                    glVertex2f(x + 0.1f, y + 0.1f);
+                    glVertex2f(x - 0.1f, y + 0.1f);
+
+                    glEnd();
+
+                    glfwSwapBuffers(l);
+                    glfwPollEvents();
             }
         } finally {
             close();
