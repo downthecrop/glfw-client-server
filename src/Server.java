@@ -538,6 +538,17 @@ public class Server {
                                 break;
 
 
+                            case "glBufferSubData":
+                                Object[] bufferSubDataArgs = (Object[]) argsObject;
+
+                                target = (int) bufferSubDataArgs[0];
+                                long offset = (long) bufferSubDataArgs[1];
+                                byte[] dataBytes = (byte[]) bufferSubDataArgs[2];
+
+                                ByteBuffer dataBuffer = ByteBuffer.wrap(dataBytes);
+
+                                GL15.glBufferSubData(target, offset, dataBuffer);
+                                break;
 
 
 
